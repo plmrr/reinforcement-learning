@@ -12,5 +12,6 @@ Q-learning algorithm for maximalization of gold amount at the end of 25th turn.
 Visualization of last training epoch:
 ![new_1](https://github.com/plmrr/reinforcement-learning/assets/130595899/8f02e1c5-5211-46ed-a8fd-aa68587dba86)
 
+
 Example train result:
 ![train_result](https://github.com/plmrr/reinforcement-learning/assets/130595899/714a6d23-ed13-4b7c-82e0-3bfd93f4a19e)
