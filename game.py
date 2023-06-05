@@ -55,6 +55,17 @@ class Game:
         elif unit_type == 'scout':
             self.units.append(Scout(position))
 
+        for unit in self.units:
+            if unit.position in self.resource_positions:
+                resource = self.resource_positions[unit.position]
+                if resource == 'wood':
+                    self.wood += 1
+                elif resource == 'iron':
+                    self.iron += 1
+                elif resource == 'gold':
+                    self.gold += 1
+                del self.resource_positions[unit.position]
+
     def move_unit(self, unit, direction, steps):
         unit = self.units[unit]
         for _ in range(min(steps, unit.steps_per_turn)):
@@ -136,7 +147,9 @@ class Game:
     def get_state(self):
         state = {
             'units': [(isinstance(unit, Settler), unit.position) for unit in self.units],
-            'cities': self.city_positions + self.wood_city_positions + self.iron_city_positions,
+            'basic_cities': self.city_positions,
+            'wooden_cities': self.wood_city_positions,
+            'iron_cities': self.iron_city_positions,
             'resources': self.resource_positions,
             'gold': self.gold,
             'wood': self.wood,
@@ -147,12 +160,12 @@ class Game:
     def reset(self):
         self.units = []
         self.turn = 0
+        self.resource_positions = self.generate_resources(self.num_resources)
         self.add_unit('settler', (0, 0))
         self.add_unit('scout', (1, 1))
         self.gold = 10
         self.wood = 0
         self.iron = 0
-        self.resource_positions = self.generate_resources(self.num_resources)
         self.city_positions = []
         self.wood_city_positions = []
         self.iron_city_positions = []
@@ -172,22 +185,27 @@ class Game:
 
             if direction == 'up':
                 if (unit_y - steps) <= -1:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -999, False
             elif direction == 'down':
                 if (unit_y + steps) >= 5:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -999, False
             elif direction == 'right':
                 if (unit_x + steps) >= 5:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -999, False
             elif direction == 'left':
                 if (unit_x - steps) <= -1:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -999, False
 
             gold_before = self.gold
             wood_before = self.wood
             iron_before = self.iron
             self.move_unit(unit_id, direction, steps)
             if self.gold > gold_before or self.wood > wood_before or self.iron > iron_before:
+                self.collect_income()
                 return self.get_state(), 1, False
         elif action_type == "build":
             #             if direction == 'settler':
@@ -203,20 +221,26 @@ class Game:
             if direction == 'basic':
                 if self.gold >= 5 and empty_position and (isinstance(unit, Settler)):
                     self.build_city(direction, unit_id)
-                    return self.get_state(), 1, False
+                    self.collect_income()
+                    return self.get_state(), 15, False
                 else:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -10, False
             elif direction == 'wood':
                 if self.gold >= 7 and self.wood >= 1 and empty_position and (isinstance(unit, Settler)):
                     self.build_city(direction, unit_id)
-                    return self.get_state(), 2, False
+                    self.collect_income()
+                    return self.get_state(), 30, False
                 else:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -10, False
             elif direction == 'iron':
                 if self.gold >= 10 and self.wood >= 2 and self.iron >= 1 and empty_position and (isinstance(unit, Settler)):
                     self.build_city(direction, unit_id)
-                    return self.get_state(), 3, False
+                    self.collect_income()
+                    return self.get_state(), 50, False
                 else:
-                    return self.get_state(), -1, False
+                    self.collect_income()
+                    return self.get_state(), -10, False
         self.collect_income()
         return self.get_state(), 0, False
