@@ -6,10 +6,12 @@ from gif import create_gif
 
 
 class QLearningAgent:
-    def __init__(self, game, learning_rate=0.075, discount_rate=0.99, exploration_rate=1.0, exploration_decay_rate=0.0001):
+    def __init__(self, game, learning_rate=0.075, discount_rate=0.99, exploration_rate=1.0, exploration_decay_rate=0.0005):
         self.game = game
         self.epochs = 100000
         self.historic_gold = []
+        self.historic_reward = []
+        self.reward = 0
         self.learning_rate = learning_rate
         self.discount_rate = discount_rate
         self.exploration_rate = exploration_rate
@@ -156,14 +158,17 @@ class QLearningAgent:
             state = self.game.reset()
             done = False
             self.turn = 0
+            self.reward = 0
             while not done:
-                if episode == self.epochs - 1:  # Visualize the last episode
+                if episode == self.epochs - 1:  # visualize episode
                     self.visualize(state)
                 action = self.get_action_from_policy(state)
                 new_state, reward, done = self.game.step(action)
                 self.update_q_table(state, action, reward, new_state)
                 state = new_state
                 self.turn += 1
+                self.reward += reward
+            self.historic_reward.append(self.reward)
             self.historic_gold.append(state['gold'])
             self.exploration_rate = self.exploration_rate * (1 - self.exploration_decay_rate)
 
@@ -174,5 +179,9 @@ agent.train()
 plt.plot([_ for _ in (range(agent.epochs))], agent.historic_gold)
 plt.ylabel('Gold')
 plt.xlabel('Epoch')
-create_gif('frames', 'new.gif')
+create_gif(agent.frame_path, 'new.gif')
+plt.show()
+plt.plot([_ for _ in (range(agent.epochs))], agent.historic_reward)
+plt.ylabel('Reward')
+plt.xlabel('Epoch')
 plt.show()
