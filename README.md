@@ -33,6 +33,7 @@ The developed environment consists of the following elements:
 Q-learning algorithm with reward values for maximization of gold amount at the end of 25th turn. 
 
 Example results for α	= 0.075, γ = 0.99, ε = 1.0, ε_decay = 0.0005, epochs = 100 000
+
 Visualization of last training epoch:
 
 ![game_visualization](https://github.com/plmrr/reinforcement-learning/assets/130595899/1a1c6408-7b56-4749-b776-72e09e9aeeea)
