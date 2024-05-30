@@ -10,11 +10,14 @@ def create_gif(image_folder, output_file, duration=500):
             try:
                 image = Image.open(filepath)
                 images.append(image)
-            except IOError:
-                pass
+            except IOError as e:
+                print(f"Error opening image {filepath}: {e}")
 
-    images[0].save(output_file, format='GIF',
-                   append_images=images[1:],
-                   save_all=True,
-                   duration=duration,
-                   loop=0)
+    if images:
+        images[0].save(output_file, format='GIF',
+                       append_images=images[1:],
+                       save_all=True,
+                       duration=duration,
+                       loop=0)
+    else:
+        print("No images found to create GIF")

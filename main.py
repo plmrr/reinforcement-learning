@@ -155,6 +155,7 @@ class QLearningAgent:
 
     def train(self):
         for episode in range(self.epochs):
+            print(episode)
             state = self.game.reset()
             done = False
             self.turn = 0
