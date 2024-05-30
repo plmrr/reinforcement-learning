@@ -208,14 +208,6 @@ class Game:
                 self.collect_income()
                 return self.get_state(), 2, False
         elif action_type == "build":
-            #             if direction == 'settler':
-            #                 if self.gold >= 5:
-            #                     self.add_unit('settler', self.units[unit_id].position)
-            #                     self.gold -= 5
-            #             elif direction == 'scout':
-            #                 if self.gold >= 7:
-            #                     self.add_unit('scout', self.units[unit_id].position)
-            #                     self.gold -= 7
             unit = self.units[unit_id]
             empty_position = unit.position not in self.city_positions + self.wood_city_positions + self.iron_city_positions
             if direction == 'basic':
