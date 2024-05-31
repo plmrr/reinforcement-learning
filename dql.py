@@ -2,47 +2,35 @@ import random
 import numpy as np
 import os
 import tensorflow as tf
-from tensorflow.keras import models, layers, optimizers
-from game import Game
+from tensorflow.keras.models import Sequential #type: ignore
+from tensorflow.keras.layers import Dense #type: ignore
+from collections import deque
 from gif import visualize
 
+
 class DQLAgent:
-    def __init__(self, game, learning_rate=0.001, discount_rate=0.99, exploration_rate=1.0, exploration_decay_rate=0.995, min_exploration_rate=0.01, batch_size=64, memory_size=100000, frame_path='output_files/dql/frames'):
+    def __init__(self, game, learning_rate=0.001, discount_rate=0.99, exploration_rate=1.0,
+                 exploration_decay_rate=0.999, exploration_min=0.01, batch_size=4, memory_size=10000,
+                 frame_path='output_files/dql/frames'):
         self.game = game
         self.learning_rate = learning_rate
         self.discount_rate = discount_rate
         self.exploration_rate = exploration_rate
         self.exploration_decay_rate = exploration_decay_rate
-        self.min_exploration_rate = min_exploration_rate
+        self.exploration_min = exploration_min
         self.batch_size = batch_size
-        self.memory_size = memory_size
-        self.memory = []
+        self.memory = deque(maxlen=memory_size)
         self.actions = self.generate_actions()
-        self.model = self.build_model()
-        self.target_model = self.build_model()
-        self.update_target_model()
-        self.turn = 0
         self.frame_path = frame_path
         self.historic_gold = []
         self.historic_reward = []
-        self.reward = 0
+        self.turn = 0
 
         # Ensure the frame directory exists
         if not os.path.exists(self.frame_path):
             os.makedirs(self.frame_path)
 
-    def build_model(self):
-        input_dim = 2 * 3 + 3  # 2 units * (type + x + y) + 3 resources
-        model = models.Sequential()
-        model.add(layers.Input(shape=(input_dim,)))
-        model.add(layers.Dense(24, activation='relu'))
-        model.add(layers.Dense(24, activation='relu'))
-        model.add(layers.Dense(len(self.actions), activation='linear'))
-        model.compile(loss='mse', optimizer=optimizers.Adam(learning_rate=self.learning_rate))
-        return model
-    
-    def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
+        self.model = self.build_model()
 
     def generate_actions(self):
         actions = []
@@ -57,63 +45,72 @@ class DQLAgent:
                         actions.append((unit_id, action_type, city_type, 0))
         return actions
 
+    def build_model(self):
+        model = Sequential()
+        model.add(Dense(9, input_dim=9, activation='relu'))  # zmniejszono rozmiar wejściowy
+        model.add(Dense(24, activation='relu'))
+        model.add(Dense(24, activation='relu'))
+        model.add(Dense(len(self.actions), activation='linear'))
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate), loss='mse')
+        return model
+
     def encode_state(self, state):
         state_vector = []
         for unit_id in range(2):
             if unit_id < len(state['units']):
                 unit_type, position = state['units'][unit_id]
-                state_vector += [1 if isinstance(unit_type, bool) else 0, position[0], position[1]]
+                unit_type_encoded = 0 if unit_type else 1
+                state_vector += [unit_type_encoded, position[0], position[1]]
             else:
                 state_vector += [0, self.game.board_size, self.game.board_size]
         state_vector += [state['gold'], state['wood'], state['iron']]
-        return np.array(state_vector).reshape(1, -1)
+        return np.array(state_vector)
 
-    def remember(self, state, action, reward, next_state, done):
-        if len(self.memory) > self.memory_size:
-            self.memory.pop(0)
-        self.memory.append((state, action, reward, next_state, done))
-
-    def act(self, state):
+    def get_action_from_policy(self, state):
         if np.random.rand() < self.exploration_rate:
             return random.choice(self.actions)
-        state_vector = self.encode_state(state)
-        q_values = self.model.predict(state_vector)
+        state_vector = self.encode_state(state).reshape(1, -1)
+        q_values = self.model.predict(state_vector, verbose=0)
         return self.actions[np.argmax(q_values[0])]
+
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
     def replay(self):
         if len(self.memory) < self.batch_size:
             return
-        batch = random.sample(self.memory, self.batch_size)
-        for state, action, reward, next_state, done in batch:
+        minibatch = random.sample(self.memory, self.batch_size)
+        for state, action, reward, next_state, done in minibatch:
+            state_vector = self.encode_state(state).reshape(1, -1)
+            next_state_vector = self.encode_state(next_state).reshape(1, -1)
             target = reward
             if not done:
-                next_state_vector = self.encode_state(next_state)
-                target = reward + self.discount_rate * np.amax(self.target_model.predict(next_state_vector)[0])
-            state_vector = self.encode_state(state)
-            target_f = self.model.predict(state_vector)
-            target_f[0][self.actions.index(action)] = target
+                target = (reward + self.discount_rate * np.amax(self.model.predict(next_state_vector, verbose=0)[0]))
+            target_f = self.model.predict(state_vector, verbose=0)
+            action_index = self.actions.index(action)
+            target_f[0][action_index] = target
             self.model.fit(state_vector, target_f, epochs=1, verbose=0)
-        self.exploration_rate = max(self.min_exploration_rate, self.exploration_rate * self.exploration_decay_rate)
 
-    def train(self, episodes=1000, target_update_freq=10):
+        if self.exploration_rate > self.exploration_min:
+            self.exploration_rate *= self.exploration_decay_rate
+
+    def train(self, episodes):
         for episode in range(episodes):
-            print(episode)
             state = self.game.reset()
             done = False
             self.turn = 0
-            self.reward = 0
+            total_reward = 0
             while not done:
                 if episode == episodes - 1:  # visualize only in the last episode
                     visualize(state, self.turn, self.frame_path, self.game.board_size)
-                action = self.act(state)
+                action = self.get_action_from_policy(state)
                 next_state, reward, done = self.game.step(action)
                 self.remember(state, action, reward, next_state, done)
                 state = next_state
+                total_reward += reward
                 self.turn += 1
-                self.reward += reward
-                self.replay()
-            if episode % target_update_freq == 0:
-                self.update_target_model()
-            self.historic_reward.append(self.reward)
+            self.replay()
+            self.historic_reward.append(total_reward)
             self.historic_gold.append(state['gold'])
-            self.exploration_rate = max(self.min_exploration_rate, self.exploration_rate * self.exploration_decay_rate)
+            print(
+                f"Episode: {episode + 1}/{episodes}, Total Reward: {total_reward}, Exploration Rate: {self.exploration_rate}")

@@ -6,7 +6,6 @@ from gif import visualize
 class QLearningAgent:
     def __init__(self, game, learning_rate=0.075, discount_rate=0.99, exploration_rate=1.0, exploration_decay_rate=0.0005, frame_path='output_files/ql/frames'):
         self.game = game
-        self.epochs = 100000
         self.historic_gold = []
         self.historic_reward = []
         self.reward = 0
@@ -64,7 +63,7 @@ class QLearningAgent:
         self.q_table[old_state_index, action_index] = (1 - self.learning_rate) * self.q_table[old_state_index, action_index] + \
             self.learning_rate * (reward + self.discount_rate * np.max(self.q_table[new_state_index, :]))
 
-    def train(self, episodes=1000):
+    def train(self, episodes):
         for episode in range(episodes):
             print(episode)
             state = self.game.reset()
