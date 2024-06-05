@@ -25,15 +25,16 @@ class QLearningAgent:
     def generate_actions(self):
         actions = []
         for unit_id in range(2):
-            for action_type in ['move', 'build']:
-                if action_type == 'move':
-                    for direction in ['up', 'down', 'left', 'right']:
+            for action_type in [0, 1]:  # 0: move, 1: build
+                if action_type == 0:  # move
+                    for direction in [0, 1, 2, 3]:  # 0: up, 1: down, 2: right, 3: left
                         for steps in range(1, 3):
                             actions.append((unit_id, action_type, direction, steps))
-                elif action_type == 'build':
-                    for city_type in ['basic', 'wood', 'iron']:
+                elif action_type == 1:  # build
+                    for city_type in [0, 1, 2]:  # 0: basic, 1: wood, 2: iron
                         actions.append((unit_id, action_type, city_type, 0))
         return actions
+
 
     def encode_state(self, state):
         state_vector = []
@@ -44,10 +45,13 @@ class QLearningAgent:
             else:
                 state_vector += [0, self.game.board_size, self.game.board_size]
         state_vector += [state['gold'], state['wood'], state['iron']]
+        
+        # Flatten state vector to a single index
         state_index = 0
         for i, value in enumerate(state_vector):
             state_index += value * (self.game.board_size + 1)**i
         return state_index
+
 
     def get_action_from_policy(self, state):
         if random.uniform(0, 1) < self.exploration_rate:
@@ -55,6 +59,7 @@ class QLearningAgent:
         else:
             state_index = self.encode_state(state)
             return self.actions[np.argmax(self.q_table[state_index])]
+
 
     def update_q_table(self, old_state, action, reward, new_state):
         old_state_index = self.encode_state(old_state)
@@ -82,4 +87,3 @@ class QLearningAgent:
             self.historic_reward.append(self.reward)
             self.historic_gold.append(state['gold'])
             self.exploration_rate = self.exploration_rate * (1 - self.exploration_decay_rate)
-
