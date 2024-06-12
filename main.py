@@ -30,11 +30,11 @@ ql_path = 'output_files/ql'
 q_agent = QLearningAgent(game, frame_path=f'{ql_path}/frames')
 train_and_plot(q_agent, episodes=100000, title="Q-Learning Agent", path=ql_path)
 
-# create_gif(q_agent.frame_path, f'{ql_path}/q_learning.gif')
+create_gif(q_agent.frame_path, f'{ql_path}/q_learning.gif')
 
-# game = Game()
-# dql_path = 'output_files/dql'
-# dqn_agent = DQLAgent(game, frame_path=f'{dql_path}/frames')
-# train_and_plot(dqn_agent, episodes=10000, title="DQN Agent", path=dql_path)
+game = Game()
+dql_path = 'output_files/dql'
+dqn_agent = DQLAgent(game, frame_path=f'{dql_path}/frames')
+train_and_plot(dqn_agent, episodes=10000, title="DQN Agent", path=dql_path)
 
-# create_gif(dqn_agent.frame_path, f'{dql_path}/dqn.gif')
+create_gif(dqn_agent.frame_path, f'{dql_path}/dqn.gif')
