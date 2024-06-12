@@ -28,7 +28,7 @@ def train_and_plot(agent, episodes, title, path):
 game = Game()
 ql_path = 'output_files/ql'
 q_agent = QLearningAgent(game, frame_path=f'{ql_path}/frames')
-train_and_plot(q_agent, episodes=5000, title="Q-Learning Agent", path=ql_path)
+train_and_plot(q_agent, episodes=100000, title="Q-Learning Agent", path=ql_path)
 
 # create_gif(q_agent.frame_path, f'{ql_path}/q_learning.gif')
 
